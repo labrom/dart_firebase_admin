@@ -1,7 +1,7 @@
 import 'dart:convert';
 
 import 'package:dart_firebase_admin/src/messaging.dart';
-import 'package:firebaseapis/fcm/v1.dart' as fmc1;
+import 'package:googleapis/fcm/v1.dart' as fmc1;
 import 'package:http/http.dart';
 import 'package:mocktail/mocktail.dart';
 import 'package:test/test.dart';
@@ -235,6 +235,35 @@ void main() {
       expect(
         request.message!.webpush!.notification!['renotify'],
         1,
+      );
+    });
+
+    test('supports null alert/sound', () async {
+      when(() => messages.send(any(), any())).thenAnswer(
+        (_) => Future.value(fmc1.Message(name: 'test')),
+      );
+
+      await messaging.send(
+        TopicMessage(
+          topic: 'test',
+          apns: ApnsConfig(
+            payload: ApnsPayload(
+              aps: Aps(),
+            ),
+          ),
+          webpush: WebpushConfig(
+            notification: WebpushNotification(renotify: true),
+          ),
+        ),
+      );
+
+      final capture = verify(() => messages.send(captureAny(), captureAny()))
+        ..called(1);
+      final request = capture.captured.first as fmc1.SendMessageRequest;
+
+      expect(
+        request.message!.apns!.payload!['aps'],
+        <String, Object?>{},
       );
     });
   });

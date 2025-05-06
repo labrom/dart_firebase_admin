@@ -1,7 +1,7 @@
 import 'dart:async';
 import 'dart:convert';
 
-import 'package:firebaseapis/fcm/v1.dart' as fmc1;
+import 'package:googleapis/fcm/v1.dart' as fmc1;
 import 'package:http/http.dart';
 import 'package:meta/meta.dart';
 
@@ -170,10 +170,4 @@ class Messaging {
       dryRun: dryRun,
     );
   }
-
-  // TODO uncomment code below when we figure out hot to send the subscription request
-  // TODO also unmark the response as internal
-  // TODO subscribeToTopic, unsubscribeFromTopic
-  // TODO sendAll – missing batch client implementation
-  // TODO sendMulticast - relies on sendAll
 }

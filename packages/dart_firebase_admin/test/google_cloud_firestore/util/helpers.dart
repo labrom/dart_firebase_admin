@@ -10,13 +10,15 @@ const projectId = 'dart-firebase-admin';
 FirebaseAdminApp createApp({
   FutureOr<void> Function()? tearDown,
   Client? client,
+  bool useEmulator = true,
 }) {
   final credential = Credential.fromApplicationDefaultCredentials();
   final app = FirebaseAdminApp.initializeApp(
     projectId,
     credential,
     client: client,
-  )..useEmulator();
+  );
+  if (useEmulator) app.useEmulator();
 
   addTearDown(() async {
     if (tearDown != null) {
@@ -28,20 +30,36 @@ FirebaseAdminApp createApp({
   return app;
 }
 
-Firestore createFirestore([Settings? settings]) {
-  final firestore = Firestore(createApp(), settings: settings);
+Future<void> _recursivelyDeleteAllDocuments(Firestore firestore) async {
+  Future<void> handleCollection(CollectionReference<void> collection) async {
+    final docs = await collection.listDocuments();
 
-  addTearDown(() async {
-    final collections = await firestore.listCollections();
+    for (final doc in docs) {
+      await doc.delete();
 
-    for (final collection in collections) {
-      final docs = await collection.get();
-
-      await Future.wait([
-        for (final doc in docs.docs) doc.ref.delete(),
-      ]);
+      final subcollections = await doc.listCollections();
+      for (final subcollection in subcollections) {
+        await handleCollection(subcollection);
+      }
     }
-  });
+  }
+
+  final collections = await firestore.listCollections();
+  for (final collection in collections) {
+    await handleCollection(collection);
+  }
+}
+
+Future<Firestore> createFirestore({
+  Settings? settings,
+  bool useEmulator = true,
+}) async {
+  final firestore = Firestore(
+    createApp(useEmulator: useEmulator),
+    settings: settings,
+  );
+
+  addTearDown(() => _recursivelyDeleteAllDocuments(firestore));
 
   return firestore;
 }
